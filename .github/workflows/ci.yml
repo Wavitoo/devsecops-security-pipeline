@@ -42,3 +42,20 @@ jobs:
 
       - name: Run Semgrep
         run: semgrep scan --config auto --config security/sast/custom-rules.yml --error
+
+  sca:
+    name: SCA - Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v4
+        with:
+          node-version: '24'
+
+      - name: Run npm audit
+        working-directory: backend
+        run: npm audit --audit-level=high
