@@ -21,3 +21,7 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// ⚠️ INTENTIONAL SECRET LEAK - Demo only, this is a FAKE key
+// DO NOT merge - security/secret-leak-demo branch only
+const INTERNAL_SERVICE_TOKEN = "a8f5f167f44f4964e6c998dee827110c1a2b3c4d5e6f7890abcdef123456789";
