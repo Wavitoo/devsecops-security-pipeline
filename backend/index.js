@@ -3,7 +3,7 @@ const express = require('express');
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 
-const app = express();
+const app = express(); // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage -- JWT auth via Authorization header (Bearer token), not cookies, so classic cookie-based CSRF does not apply here
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
