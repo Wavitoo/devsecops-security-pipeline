@@ -33,14 +33,12 @@ jobs:
   sast:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Semgrep (standard + custom rules)
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            auto
-            security/sast/custom-rules.yml
+      - name: Run Semgrep
+        run: semgrep scan --config auto --config security/sast/custom-rules.yml --error
