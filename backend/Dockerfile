@@ -18,6 +18,13 @@ WORKDIR /app
 
 COPY --from=builder /app ./
 
+# Réduction de la surface d'attaque : npm n'est nécessaire qu'au build (stage builder),
+# pas à l'exécution. On le retire du stage final pour éliminer ses propres
+# dépendances vulnérables (brace-expansion, tar, undici) de l'image livrée.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx \
+    && rm -rf /opt/yarn-v*
+
 USER appuser
 
 EXPOSE 3000
