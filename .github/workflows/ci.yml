@@ -129,7 +129,8 @@ jobs:
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py \
             -t http://devsecops-security-pipeline-backend-1:3000 \
-            -r zap-ci-report.html
+            -r zap-ci-report.html \
+            -I
 
       - name: Upload ZAP report
         if: always()
