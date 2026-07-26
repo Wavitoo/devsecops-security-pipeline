@@ -1,0 +1,23 @@
+rules:
+  - id: node-postgres-sql-injection
+    languages: [javascript, typescript]
+    severity: ERROR
+    mode: taint
+    message: >
+      Potential SQL Injection: untrusted user input (from req.query, req.body,
+      or req.params) flows into the raw SQL query string itself (first argument
+      of pool.query()) via template literal interpolation. Use parameterized
+      queries instead (e.g. pool.query('SELECT ... WHERE id = $1', [value])).
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp: "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+    pattern-sinks:
+      - patterns:
+          - pattern: pool.query($QUERY, ...)
+          - focus-metavariable: $QUERY
