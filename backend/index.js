@@ -1,9 +1,23 @@
-function add(a, b) {
-  return a + b;
-}
+require('dotenv').config();
+const express = require('express');
+const authRoutes = require('./routes/auth');
+const taskRoutes = require('./routes/tasks');
 
-module.exports = { add };
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 if (require.main === module) {
-  console.log("DevSecOps pipeline backend - Hello World");
+  app.listen(PORT, () => {
+    console.log(`TaskVault backend running on port ${PORT}`);
+  });
 }
+
+module.exports = app;
