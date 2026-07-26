@@ -20,3 +20,5 @@ build/
 # IDE
 .vscode/
 .idea/
+zap-report*.html
+zap-report*.html
