@@ -91,3 +91,44 @@ jobs:
             --severity CRITICAL,HIGH \
             --exit-code 1 \
             --ignore-unfixed
+
+  dast:
+    name: DAST - OWASP ZAP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Prepare environment files
+        run: |
+          echo "DB_USER=ci_user" >> .env
+          echo "DB_PASSWORD=ci_password" >> .env
+          echo "DB_NAME=taskvault" >> .env
+          echo "DB_HOST=db" >> backend/.env
+          echo "DB_USER=ci_user" >> backend/.env
+          echo "DB_PASSWORD=ci_password" >> backend/.env
+          echo "DB_NAME=taskvault" >> backend/.env
+          echo "JWT_SECRET=ci-only-secret-not-used-in-prod" >> backend/.env
+          echo "PORT=3000" >> backend/.env
+
+      - name: Start app stack
+        run: |
+          docker compose up -d --build
+          sleep 10
+
+      - name: Run ZAP baseline scan
+        run: |
+          docker run --rm --network devsecops-security-pipeline_default \
+            -v "${{ github.workspace }}:/zap/wrk/:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://devsecops-security-pipeline-backend-1:3000 \
+            -r zap-ci-report.html
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v4
+        with:
+          name: zap-report
+          path: zap-ci-report.html
