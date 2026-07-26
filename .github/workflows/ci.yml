@@ -117,10 +117,15 @@ jobs:
           docker compose up -d --build
           sleep 10
 
+      - name: Prepare report directory
+        run: |
+          mkdir -p zap-output
+          chmod 777 zap-output
+
       - name: Run ZAP baseline scan
         run: |
           docker run --rm --network devsecops-security-pipeline_default \
-            -v "${{ github.workspace }}:/zap/wrk/:rw" \
+            -v "${{ github.workspace }}/zap-output:/zap/wrk/:rw" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py \
             -t http://devsecops-security-pipeline-backend-1:3000 \
@@ -131,4 +136,4 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v4
         with:
           name: zap-report
-          path: zap-ci-report.html
+          path: zap-output/zap-ci-report.html
