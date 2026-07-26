@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Run tests
+        working-directory: backend
+        run: npm test
+
+  sast:
+    name: SAST - Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Run Semgrep
+        run: semgrep scan --config auto --config security/sast/custom-rules.yml --error
+
+  sca:
+    name: SCA - Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v4
+
+      - name: Run npm audit
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+  secrets:
+    name: Secret Detection - Gitleaks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e  # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  container:
+    name: Container Security - Trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Build backend image
+        run: docker build -t taskvault-backend:ci ./backend
+
+      - name: Run Trivy scan
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image taskvault-backend:ci \
+            --severity CRITICAL,HIGH \
+            --exit-code 1 \
+            --ignore-unfixed
+
+  dast:
+    name: DAST - OWASP ZAP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Prepare environment files
+        run: |
+          echo "DB_USER=ci_user" >> .env
+          echo "DB_PASSWORD=ci_password" >> .env
+          echo "DB_NAME=taskvault" >> .env
+          echo "DB_HOST=db" >> backend/.env
+          echo "DB_USER=ci_user" >> backend/.env
+          echo "DB_PASSWORD=ci_password" >> backend/.env
+          echo "DB_NAME=taskvault" >> backend/.env
+          echo "JWT_SECRET=ci-only-secret-not-used-in-prod" >> backend/.env
+          echo "PORT=3000" >> backend/.env
+
+      - name: Start app stack
+        run: |
+          docker compose up -d --build
+          sleep 10
+
+      - name: Prepare report directory
+        run: |
+          mkdir -p zap-output
+          chmod 777 zap-output
+
+      - name: Run ZAP baseline scan
+        run: |
+          docker run --rm --network devsecops-security-pipeline_default \
+            -v "${{ github.workspace }}/zap-output:/zap/wrk/:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://devsecops-security-pipeline-backend-1:3000 \
+            -r zap-ci-report.html \
+            -I
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v4
+        with:
+          name: zap-report
+          path: zap-output/zap-ci-report.html
