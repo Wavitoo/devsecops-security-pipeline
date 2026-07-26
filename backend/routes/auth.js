@@ -76,3 +76,20 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
+
+// ⚠️ VULNERABLE ROUTE - Intentional SQL Injection for SAST demonstration
+// DO NOT merge this into develop/main - security/sql-injection-demo branch only
+router.get('/search', async (req, res) => {
+  const { username } = req.query;
+
+  try {
+    // VULNERABLE: string concatenation instead of parameterized query
+    const query = `SELECT id, username FROM users WHERE username = '${username}'`;
+    const result = await pool.query(query);
+
+    res.json({ users: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});

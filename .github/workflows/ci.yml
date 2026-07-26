@@ -38,7 +38,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Semgrep
+      - name: Run Semgrep (standard + custom rules)
         uses: semgrep/semgrep-action@v1
         with:
-          config: auto
+          config: >-
+            auto
+            security/sast/custom-rules.yml
