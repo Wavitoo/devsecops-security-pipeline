@@ -22,3 +22,5 @@ build/
 .idea/
 zap-report*.html
 zap-report*.html
+zap-ci-report.html
+zap-output/
